@@ -1,26 +1,32 @@
 import dotenv from 'dotenv';
 import express from 'express';
-import mongoose from 'mongoose';
 import cors from 'cors';
+import connectDB from './config/db.js';
+import cookieParser from 'cookie-parser';
+import userRouter from "./Routes/userRoute.js"
+
 dotenv.config();
+connectDB();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
+app.use(cookieParser());
 
-app.get('/', (req, res) => {
-  res.send('Welcome to MindKeep backend!');
-});
+//Todo: Add allowedorigins after making frontend
+/*const allowedorigins = [];
+  app.use(cors({
+    origin: allowedorigins,
+    credentials: true
+  }));
+*/
 
-mongoose.connect(process.env.MONGO_URI)
-.then(() => {
-  console.log('MongoDB connected');
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-  });
-})
-.catch((err) => {
-  console.error('MongoDB connection error:', err);
+app.use("/api/user", userRouter);
+
+app.listen(PORT, () => {
+  if (process.env.NODE_ENV !== "production") {
+    console.log(`Server is running at http://localhost:${PORT}`);
+  }
 });
