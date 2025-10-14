@@ -17,7 +17,7 @@ const userSchema = mongoose.Schema({
     required: true,
   },
   notes: {
-    type: Mongoose.Schema.Types.ObjectId,
+    type: mongoose.Schema.Types.ObjectId,
     ref: "Note"
   }
 });
