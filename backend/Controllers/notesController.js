@@ -32,6 +32,21 @@ export const createNote = async (req, res) => {
   }
 }
 
+//Get notes
+export const getNotes = async (req, res) => {
+  try {
+    const { userId } = req.user;
+
+    const notes = await Note.find({ "_id": userId }).sort({ updatedAt: -1 });
+    
+    res.status(200).json(notes);
+  } catch (error) {
+    res.status(500).json({
+      error: error.message
+    })
+  }
+}
+
 //Update Note
 export const updateNote = async (req, res) => {
   try {
