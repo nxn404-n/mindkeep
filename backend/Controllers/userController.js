@@ -3,6 +3,7 @@ import { generateAndSetToken } from "../Helpers/jwt.js";
 import User from "../Models/userSchema.js";
 import bcrypt from "bcryptjs";
 import { AppError } from "../utils/AppError.js";
+import Note from "../Models/notesSchema.js";
 
 // Create User
 export const createUser = async (req, res, next) => {
@@ -95,7 +96,8 @@ export const deleteUser = async (req, res, next) => {
     return next(new AppError("User not found", 404));
   }
 
-  // TODO: Delete all notes of the user after implementing notes functionality
+  await Note.deleteMany({ user: userId });
+
   clearCookie(res);
 
   res.status(200).json({
