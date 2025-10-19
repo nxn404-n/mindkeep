@@ -1,16 +1,14 @@
 import Note from "../Models/notesSchema.js";
 import User from "../Models/userSchema.js";
+import { AppError } from "../utils/AppError.js";
 
 //Create New Note
-export const createNote = async (req, res) => {
-  try {
+export const createNote = async (req, res, next) => {
     const { title, content } = req.body;
     const { userId } = req.user;
 
     if (!content) {
-      return res.status(400).json({
-        error: "Content required"
-      });
+      return next(new AppError("Content required", 400));
     }
 
     const newNote = await Note.create({
@@ -23,45 +21,38 @@ export const createNote = async (req, res) => {
       $push: { notes: newNote._id }
     });
 
-    res.status(201).json({
-      message: "Note created successfully"
+  res.status(201).json({
+      status: "succcess",
+      message: "Note created successfully",
+      note: newNote
     })
-  } catch (error) {
-    res.status(500).json({
-      error: error.message
-    })
-  }
 }
 
 //Get notes
-export const getNotes = async (req, res) => {
-  try {
+export const getNotes = async (req, res, next) => {
     const { userId } = req.user;
-
     const notes = await Note.find({ "user": userId }).sort({ updatedAt: -1 });
-    
+
+    if (!notes || notes.length === 0) {
+      return next(new AppError("No notes found for this user", 404));
+    }
+      
     res.status(200).json(notes);
-  } catch (error) {
-    res.status(500).json({
-      error: error.message
-    })
-  }
 }
 
 //Update Note
-export const updateNote = async (req, res) => {
-  try {
+export const updateNote = async (req, re, next) => {
     const noteId = req.params.id;
     const { title, content } = req.body;
     const { userId } = req.user;
 
     const note = await Note.findById(noteId);
     if (!note) {
-      return res.status(404).json({ error: "Note not found" });
+      return next(new AppError("Note not found", 404));
     }
     // Check ownership
     if (note.user.toString() !== userId) {
-      return res.status(403).json({ error: "Unauthorized" });
+      return next(new AppError("Unauthorized", 403));
     }
 
     // Update fields
@@ -73,25 +64,21 @@ export const updateNote = async (req, res) => {
       message: "Note updated successfully",
       note
     });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
 };
 
 //Delete note
-export const deleteNote = async (req, res) => {
-  try {
+export const deleteNote = async (req, res, next) => {
     const noteId = req.params.id;
     const { userId } = req.user;
 
     // Find the note
     const note = await Note.findById(noteId);
     if (!note) {
-      return res.status(404).json({ error: "Note not found" });
+      return next(new AppError("Note not found", 404));
     }
     // Check ownership
     if (note.user.toString() !== userId) {
-      return res.status(403).json({ error: "Unauthorized" });
+      return next(new AppError("Unauthorized", 403));;
     }
 
     await note.deleteOne();
@@ -99,7 +86,4 @@ export const deleteNote = async (req, res) => {
     res.status(200).json({
       message: "Note deleted successfully"
     });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
 };

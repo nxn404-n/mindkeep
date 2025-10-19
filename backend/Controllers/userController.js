@@ -2,171 +2,127 @@ import { clearCookie } from "../Helpers/clearCookie.js";
 import { generateAndSetToken } from "../Helpers/jwt.js";
 import User from "../Models/userSchema.js";
 import bcrypt from "bcryptjs";
+import { AppError } from "../utils/AppError.js";
 
-//Create User
-export const createUser = async (req, res) => {
-  try {
-    const { password, email } = req.body;
+// Create User
+export const createUser = async (req, res, next) => {
+  const { password, email } = req.body;
 
-    if ( !password || !email) {
-      return res.status(400).json({
-        error: "Email and Password is required!!"
-      })
-    }
-
-    const existingEmail = await User.findOne({ email })
-    if (existingEmail) {
-     return res.status(409).json({
-        error: "Email is already taken"
-      })
-    }
-    
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const newUser = new User({ password: hashedPassword, email });
-    await newUser.save();
-
-    generateAndSetToken(newUser, res);
-
-    res.status(201).json({
-      message: "User created successfully",
-    })
-  } catch (error) {
-    res.status(500).json({
-      error: error.message
-    })
+  if (!password || !email) {
+    return next(new AppError("Email and Password are required", 400));
   }
-}
 
-//Set Username
-export const setUsername = async (req, res) => {
-  try {
-    const { username } = req.body;
-    const { email } = req.user;
-
-    if (!email) {
-      return res.status(401).json({
-        error: "Authentication failed"
-      })
-    };
-
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(404).json({
-        error: "User not found"
-      })
-    };
-
-    const existingUser = await User.findOne({ username });
-    if (existingUser) {
-      return res.status(400).json({
-        error: "Username already taken"
-      })
-    };
-
-    user.username = username;
-    await user.save();
-
-    res.status(200).json({
-      message: "Username set successfully",
-      user: {
-        email: user.email,  
-        username: user.username
-      }
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      error: error.message
-    })
+  const existingEmail = await User.findOne({ email });
+  if (existingEmail) {
+    return next(new AppError("Email is already taken", 409));
   }
-}
 
-//Login
-export const login = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    const lowercaseEmail = email.toLowerCase();
+  const hashedPassword = await bcrypt.hash(password, 10);
 
-    const validUser = await User.findOne({ email: lowercaseEmail });
-    const correctPassword = await bcrypt.compare(password, validUser.password);
+  const newUser = new User({ password: hashedPassword, email });
+  await newUser.save();
 
-    if (validUser && correctPassword) {
-      generateAndSetToken(validUser, res);
+  generateAndSetToken(newUser, res);
 
-      res.status(200).json({
-        message: "Logged in successfully!",
-        user: {username: validUser.username}
-      })
-    } else {
-      res.status(401).json({
-        error: "Authentication failed!"
-      })
-    }
-  } catch (error) {
-    res.status(500).json({
-      error: error.message
-    })
+  res.status(201).json({
+    status: "success",
+    message: "User created successfully",
+  });
+};
+
+// Set Username
+export const setUsername = async (req, res, next) => {
+  const { username } = req.body;
+  const { email } = req.user;
+
+  if (!email) {
+    return next(new AppError("Authentication failed", 401));
   }
-}
 
-//Delete user
-export const deleteUser = async (req, res) => {
-  try {
-    //Todo: Add delete all notes of that user after creating the notes functionality
-    const userId = req.params.id;
-
-    const deletedUser = await User.findByIdAndDelete(userId);
-
-    if (!deletedUser) {
-      return res.status(404).json({
-        message: "User not found"
-      })
-    }
-
-    clearCookie(res);
-
-    res.status(200).json({
-      message: "User deleted successfully"
-    })
-  } catch (error) {
-    res.status(500).json({
-      error: error.message
-    })
+  const user = await User.findOne({ email });
+  if (!user) {
+    return next(new AppError("User not found", 404));
   }
-}
 
-//Logout
-export const logout = async (req, res) => {
-  try {
-    clearCookie(res);
-
-    res.status(200).json({
-      message: "Logged out successfully"
-    })
-  } catch (error) {
-    res.status(500).json({
-      error: error.message
-    })
+  const existingUser = await User.findOne({ username });
+  if (existingUser) {
+    return next(new AppError("Username already taken", 400));
   }
-}
 
-//Check jwt
-export const checkAuth = async (req, res) => {
-  try {
-    if (!req.user) {
-    return res.status(401).json({
-      message: "Not authorized"
-    })
-  };
+  user.username = username;
+  await user.save();
 
   res.status(200).json({
-    user: req.user,
-    message: "User authenticated"
-  })
-  } catch (error) {
-    res.status(500).json({
-      error: error.message
-    })
+    status: "success",
+    message: "Username set successfully",
+    user: {
+      email: user.email,
+      username: user.username,
+    },
+  });
+};
+
+// Login
+export const login = async (req, res, next) => {
+  const { email, password } = req.body;
+  const lowercaseEmail = email.toLowerCase();
+
+  const validUser = await User.findOne({ email: lowercaseEmail });
+  if (!validUser) {
+    return next(new AppError("Authentication failed", 401));
   }
-}
+
+  const correctPassword = await bcrypt.compare(password, validUser.password);
+  if (!correctPassword) {
+    return next(new AppError("Authentication failed", 401));
+  }
+
+  generateAndSetToken(validUser, res);
+
+  res.status(200).json({
+    status: "success",
+    message: "Logged in successfully!",
+    user: { username: validUser.username },
+  });
+};
+
+// Delete User
+export const deleteUser = async (req, res, next) => {
+  const userId = req.params.id;
+
+  const deletedUser = await User.findByIdAndDelete(userId);
+  if (!deletedUser) {
+    return next(new AppError("User not found", 404));
+  }
+
+  // TODO: Delete all notes of the user after implementing notes functionality
+  clearCookie(res);
+
+  res.status(200).json({
+    status: "success",
+    message: "User deleted successfully",
+  });
+};
+
+// Logout
+export const logout = async (req, res, next) => {
+  clearCookie(res);
+
+  res.status(200).json({
+    status: "success",
+    message: "Logged out successfully",
+  });
+};
+
+// Check JWT / Auth
+export const checkAuth = async (req, res, next) => {
+  if (!req.user) {
+    return next(new AppError("Not authorized", 401));
+  }
+
+  res.status(200).json({
+    status: "success",
+    message: "User authenticated",
+    user: req.user,
+  });
+};
