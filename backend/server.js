@@ -4,6 +4,8 @@ import cors from 'cors';
 import connectDB from './config/db.js';
 import cookieParser from 'cookie-parser';
 import userRouter from "./Routes/userRoute.js"
+import noteRouter from "./Routes/notesRoute.js";
+import { globalErrorHandler } from './Middlewares/globalErrorHandler.js';
 
 dotenv.config();
 connectDB();
@@ -24,6 +26,9 @@ app.use(cookieParser());
 */
 
 app.use("/api/user", userRouter);
+app.use("/api/note", noteRouter);
+
+app.use(globalErrorHandler);
 
 app.listen(PORT, () => {
   if (process.env.NODE_ENV !== "production") {
