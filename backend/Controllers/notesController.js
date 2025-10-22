@@ -22,7 +22,7 @@ export const createNote = async (req, res, next) => {
     });
 
   res.status(201).json({
-      status: "succcess",
+      status: "success",
       message: "Note created successfully",
       note: newNote
     })
@@ -41,7 +41,7 @@ export const getNotes = async (req, res, next) => {
 }
 
 //Update Note
-export const updateNote = async (req, re, next) => {
+export const updateNote = async (req, res, next) => {
     const noteId = req.params.id;
     const { title, content } = req.body;
     const { userId } = req.user;
@@ -78,7 +78,7 @@ export const deleteNote = async (req, res, next) => {
     }
     // Check ownership
     if (note.user.toString() !== userId) {
-      return next(new AppError("Unauthorized", 403));;
+      return next(new AppError("Unauthorized", 403));
     }
 
     await note.deleteOne();
