@@ -1,9 +1,12 @@
 import express from 'express';
+import dotenv from 'dotenv';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import userRouter from "./Routes/userRoute.js";
 import noteRouter from "./Routes/notesRoute.js";
 import { globalErrorHandler } from './Middlewares/globalErrorHandler.js';
+
+dotenv.config();
 
 const app = express();
 
